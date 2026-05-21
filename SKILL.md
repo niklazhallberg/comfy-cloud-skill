@@ -111,6 +111,7 @@ Authoritative inventory (current files in `references/`):
 - **`asset-management.md`** — `/api/assets`, `/api/upload/image`, Blake3 hashing, HF/Civitai import via `/api/assets/download`.
 - **`cost-and-concurrency.md`** — credit math, concurrency budgeting, queue-depth handling.
 - **`mcp-tool-schemas.md`** — the `comfy-cloud-proxy` MCP server's tool interface and contract.
+- **`conflicts-and-limitations.md`** — where official Comfy Cloud sources disagree, deprecated endpoints, asset-vs-model-install distinction, runtime-verifiable claims.
 
 `research/` contains the raw AI deep-dives (Perplexity, Gemini 3.5 Flash, Claude Opus 4.7) that informed the references, plus a pinned copy of `openapi-cloud.yaml`. Use for source-tracing, not first-line lookup — the synthesized `references/` files are the working knowledge.
 

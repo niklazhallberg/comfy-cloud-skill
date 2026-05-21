@@ -2,7 +2,9 @@
 
 Comfy Cloud's HTTP and WebSocket surface. Ground truth: [`research/openapi-cloud.yaml`](../research/openapi-cloud.yaml). Cross-checked against the Claude Opus 4.7 brief.
 
-Conventions: ✅ = officially documented and stable. ⚠️ = documented but experimental. 🟡 = de-facto stable (used by the JS frontend) but not in OpenAPI.
+Conventions: ✅ = officially documented and stable. ⚠️ = documented but experimental, deprecated, or marked subject-to-change. 🟡 = de-facto stable (used by the JS frontend) but not in OpenAPI.
+
+**Identifier convention:** `prompt_id` returned from `POST /api/prompt` and `job_id` in the `/api/jobs/*` endpoints are **the same value**. Treat them as one identifier across the proxy — `jobId` internally is fine.
 
 ## Base + auth
 
@@ -19,16 +21,16 @@ Conventions: ✅ = officially documented and stable. ⚠️ = documented but exp
 
 | Method & Path | Purpose | Notes |
 |---|---|---|
-| `POST /api/prompt` ✅ | Submit a workflow | Body: `{ "prompt": <api-format-json>, "extra_data?": {...}, "partial_execution_targets?": ["nodeId", ...] }`. Returns `{ prompt_id, number, node_errors }`. |
+| `POST /api/prompt` ✅ | Submit a workflow | Body: `{ "prompt": <api-format-json>, "extra_data?": {...}, "partial_execution_targets?": ["nodeId", ...], "number?": <ignored>, "front?": <ignored> }`. Returns `{ prompt_id, number, node_errors }`. `number` and `front` are accepted for OSS compat but **ignored** on Cloud. |
 | `GET /api/prompt` ✅ | Current queue exec info | Returns `{ exec_info: { queue_remaining } }`. |
-| `GET /api/job/{job_id}/status` ✅ | Poll job status | Returns `pending` / `in_progress` / `completed` / `failed` / `cancelled` / `waiting_to_dispatch` / `error`. |
-| `GET /api/jobs` ✅ | Paginated list | Filters: `status`, `workflow_id`, `output_type`, `sort_by`, `limit ≤ 1000`. Workflow JSON omitted from list payload. |
-| `GET /api/jobs/{job_id}` ✅ | Full job detail | Includes `workflow`, `outputs`, `preview_output`, `execution_status`, `execution_meta`, structured `execution_error`. **Canonical "get me everything" call.** |
+| `GET /api/job/{job_id}/status` ✅ | Poll job status | Returns `pending` / `in_progress` / `completed` / `failed` / `cancelled` / `waiting_to_dispatch` / `error`. **`job_id` is the same value as `prompt_id` returned from `/api/prompt`.** |
+| `GET /api/jobs` ✅ | Paginated list | Filters: `status`, `workflow_id`, `output_type`, `sort_by`, `limit ≤ 1000`. Workflow JSON omitted from list payload. **Prefer this over `/api/history_v2`.** |
+| `GET /api/jobs/{job_id}` ✅ | Full job detail | Includes `workflow`, `outputs`, `preview_output`, `execution_status`, `execution_meta`, structured `execution_error`. **Canonical "get me everything" call. Prefer over `/api/history_v2/{prompt_id}`.** |
 | `GET /api/queue` ✅ | Queue state | `{ queue_running: [...], queue_pending: [...] }`. Items are tuple arrays `[job_number, prompt_id, workflow_json, output_node_ids, metadata]`. |
 | `POST /api/queue` ✅ | Cancel pending | `{ "delete": [...] }` or `{ "clear": true }`. **Affects pending only.** |
 | `POST /api/interrupt` ✅ | Cancel running | Distinct from `/api/queue`. Affects all running jobs for the authed user. |
-| `GET /api/history_v2` ✅ | Execution history (lightweight) | Workflow stripped from `extra_pnginfo`. Pagination via `max_items`, `offset`. |
-| `GET /api/history_v2/{prompt_id}` ✅ | Full history for one prompt | Dict keyed by `prompt_id`. |
+| `GET /api/history_v2` ⚠️ DEPRECATED | Execution history (lightweight) | **Officially deprecated in favor of `GET /api/jobs`.** Kept for backwards compatibility. Workflow stripped from `extra_pnginfo`. |
+| `GET /api/history_v2/{prompt_id}` ⚠️ DEPRECATED | Full history for one prompt | **Officially deprecated in favor of `GET /api/jobs/{job_id}`.** Dict keyed by `prompt_id`. |
 | `POST /api/history` ✅ | Manage history | `{ "delete": [...] }` or `{ "clear": true }`. |
 
 ## Inputs & outputs

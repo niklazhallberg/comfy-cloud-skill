@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.1 — 2026-05-21
+
+Corrections and additions from ChatGPT deep-research (`research/chatgpt-deep-research-2026-05-21.md`).
+
+**Corrected**
+- `references/api-endpoints.md` — marked `/api/history_v2*` as **officially deprecated** in favor of `/api/jobs/*`. Documented that `prompt_id == job_id` (same identifier). Added `number` / `front` as accepted-but-ignored body parameters on `POST /api/prompt`.
+
+**Added**
+- `references/workflow-format.md` — widget value array wrapping (`{"__value__": [...]}` and `{"__type__": "CURVE", ...}`); `widget.serialize` vs `widget.options.serialize` gotcha; three frontend import paths (`loadGraphData`, `loadApiJson`, `importA1111`).
+- `references/conflicts-and-limitations.md` — new file. Catalogs official source conflicts (concurrency 1-vs-3/5, BYO models scope), the asset-upload ≠ model-install distinction, MCP-output workflow-metadata gap, and the set of claims the skill should runtime-verify rather than hardcode.
+- `SKILL.md` — added the new reference file to the parts-bin index.
+- `research/chatgpt-deep-research-2026-05-21.md` — preserved as source provenance.
+
 ## 0.1.0 — 2026-05-21
 
 Initial public skill structure.

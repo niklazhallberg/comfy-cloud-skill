@@ -112,6 +112,39 @@ For nodes with multiple outputs (e.g. `CheckpointLoaderSimple` outputs `[MODEL, 
        "inputs": { "text": "...", "clip": ["4", 1] } }   // 1 = CLIP socket
 ```
 
+## Widget value array wrapping (silent failure trap)
+
+When a widget value **is itself an array**, the API serializer wraps it as `{"__value__": [...]}` to disambiguate it from a node link tuple (`["node_id", slot]`). Without this wrapping, the backend reads `[1, 2, 3]` as "connect to node 1, output 2" and either fails noisily or, worse, silently routes the wrong data.
+
+Curve widgets get a typed variant:
+
+```json
+"some_curve_input": { "__type__": "CURVE", "__value__": [[0.0, 0.5], [1.0, 0.5]] }
+```
+
+If you're hand-authoring or mutating API-format JSON for nodes with array-typed widgets (kernel masks, schedule curves, multi-value lists), check whether the target frontend uses this wrapping and match it.
+
+## `widget.serialize` vs `widget.options.serialize`
+
+Two adjacent properties on a widget that look similar but control different things:
+
+- `widget.serialize` — controls **canvas workflow** persistence (the canvas `File → Save` artifact)
+- `widget.options.serialize` — controls **API-prompt** serialization (what's actually sent to `/api/prompt`)
+
+A subtle gotcha: a widget can appear "saved" in the canvas workflow (visible after reload) but **never get included in API submissions**, because the two flags are independent. If a parameter looks set in the editor but the workflow behaves as if the default were used, check `widget.options.serialize` on the upstream widget.
+
+## Three import paths in the frontend
+
+The `workflowService` in `ComfyUI_frontend` exposes three formal entry points for loading a workflow into the canvas:
+
+| Function | Input format | Use case |
+|---|---|---|
+| `loadGraphData(data)` | Canvas workflow JSON (with `nodes` + `links`) | Standard "open saved workflow" |
+| `loadApiJson(data)` | API format (the wire format) | Load a programmatically generated graph back into the editor for visual inspection / edit |
+| `importA1111(text)` | Automatic1111 parameter text | Fallback for A1111-format prompts |
+
+`loadApiJson` is particularly useful for round-tripping: a proxy can build a workflow programmatically, submit it, and *also* hand the user the same JSON to load into the canvas for visual debugging. It can even promote widget-bound values to true inputs when needed.
+
 ## Combo input enums
 
 Inputs typed as combos (e.g. `sampler_name`, `scheduler`, `ckpt_name`, `lora_name`) only accept values from the **legal enum** for the current Cloud instance. The enum lives at `/api/object_info → <class_type> → input → required → <input_name> → [0]`.
