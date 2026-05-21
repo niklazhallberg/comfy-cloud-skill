@@ -1,0 +1,16 @@
+.DS_Store
+*.swp
+*.swo
+
+# Outputs from local experiments
+outputs/
+*.log
+
+# Cached object_info / system_stats snapshots — re-fetched on demand
+cache/
+*.cache.json
+
+# Local-only secrets
+.env
+.env.*
+!.env.example
