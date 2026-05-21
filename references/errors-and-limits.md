@@ -20,7 +20,7 @@ The `execution_error` WebSocket payload carries `exception_type`, one of:
 
 | Exception | Cause | Recovery |
 |---|---|---|
-| `ValidationError` | Workflow graph invalid at runtime (type mismatch, missing required input) | Inspect `node_id` + `exception_message`; fix and resubmit |
+| `ValidationError` | Workflow graph invalid at runtime (umbrella — see subtypes below) | Inspect `node_id` + subtype; fix and resubmit |
 | `ModelDownloadError` | A model referenced in the workflow couldn't be fetched | Verify model exists on Cloud; check HF/Civitai source if user-uploaded |
 | `ImageDownloadError` | An input image reference failed to load | Re-upload via `/api/upload/image` or `/api/assets` |
 | `OOMError` | GPU out of memory | Reduce resolution, batch size, or steps; for video, reduce frame count |
@@ -31,7 +31,35 @@ The `execution_error` WebSocket payload carries `exception_type`, one of:
 | `InsufficientFundsError` | Credits exhausted mid-execution | Surface billing error |
 | `InactiveSubscriptionError` | Plan paused / payment failed mid-execution | Surface subscription error |
 
-Every `execution_error` includes `node_id`, `node_type`, `exception_message`, `traceback`, `current_inputs`, `current_outputs`. Use these to give the user node-level diagnostic info, not generic "execution failed".
+Every `execution_error` includes `node_id`, `class_type`, `exception_message`, `traceback`, and `executed` (the list of node IDs that completed before the failure).
+
+## ValidationError subtypes
+
+`ValidationError` returns a structured `details` dict with a specific `type` code. From `execution.py:824-1098` in the upstream ComfyUI repo, the canonical subtype list:
+
+**Per-node validation errors:**
+
+| Subtype | Triggered by | What it means |
+|---|---|---|
+| `missing_node_type` | Node has no `class_type` field OR `class_type` not in NODE_CLASS_MAPPINGS | The node class doesn't exist on this Cloud instance — refresh `object_info` cache and re-validate |
+| `required_input_missing` | A required input in `INPUT_TYPES().required` isn't present in the node's `inputs` | Add the missing key |
+| `bad_linked_input` | An input value isn't a 2-tuple `[node_id, slot_index]` when it should be a link | Fix the link reference |
+| `return_type_mismatch` | An upstream node's output type doesn't match the consuming node's input type | Insert a converter or check enum compatibility |
+| `invalid_input_type` | A primitive value failed type coercion (e.g. string to int) | Provide the right type |
+| `value_smaller_than_min` / `value_bigger_than_max` | Numeric input outside the range declared in `INPUT_TYPES` | Clamp to the legal range |
+| `value_not_in_list` | Combo input received a value not in its enum (e.g. unknown sampler_name) | Look up legal values via `/api/object_info` |
+| `custom_validation_failed` | The node's `VALIDATE_INPUTS()` classmethod returned falsy | Read the message field for node-specific reason |
+| `exception_during_validation` / `exception_during_inner_validation` | An unhandled exception during the node's own validation | Treat as a node bug — file with the node author |
+
+**Graph-level errors:**
+
+| Subtype | Triggered by | What it means |
+|---|---|---|
+| `dependency_cycle` | The graph contains a cycle | A node depends on its own output transitively — restructure |
+| `prompt_no_outputs` | No nodes with `OUTPUT_NODE = True` | Add a `SaveImage` / `PreviewImage` / `VHS_VideoCombine` to anchor execution |
+| `prompt_outputs_failed_validation` | All output nodes have errors | At least one output node must validate clean |
+
+The skill should surface the subtype, not just "ValidationError". For `value_not_in_list` in particular, the most common cause is a model file that was removed from Cloud — refresh `object_info` and re-validate the combo value.
 
 ## Tier limits
 

@@ -37,6 +37,17 @@ The `research/` directory is **append-only**. Don't edit the original AI deep-di
 - Reference an issue or describe the gap being filled.
 - Run any local validators in `scripts/` before submitting.
 
-## Source of truth
+## Sources of truth
 
-The pinned [`research/openapi-cloud.yaml`](research/openapi-cloud.yaml) is the ground-truth API surface. When community sources, AI research, or older docs conflict with it, the OpenAPI spec wins. Update reference files to match.
+Two OpenAPI specs are pinned in `research/`:
+
+- [`research/openapi-cloud.yaml`](research/openapi-cloud.yaml) — Cloud's documented public surface (from docs.comfy.org).
+- [`research/openapi-oss-upstream.yaml`](research/openapi-oss-upstream.yaml) — the upstream ComfyUI repo's full OpenAPI (Comfy-Org/ComfyUI). A superset including OSS-only and Cloud-only endpoints.
+
+When the two conflict or when researchers report findings, the precedence is:
+
+1. **Docs `openapi-cloud.yaml`** for what Comfy publicly promises on Cloud
+2. **Upstream `openapi-oss-upstream.yaml`** for the implemented superset (helpful for understanding behavior, but not all endpoints are exposed on Cloud)
+3. **Community sources / AI research** for context, but flag conflicts explicitly in [`references/conflicts-and-limitations.md`](references/conflicts-and-limitations.md)
+
+When something appears only in upstream, the skill probes before relying on it. Reference files should mark such items "OSS upstream — Cloud-status unverified" until confirmed.

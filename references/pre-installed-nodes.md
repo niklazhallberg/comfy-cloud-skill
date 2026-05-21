@@ -4,6 +4,50 @@ The authoritative live list is at https://comfy.org/cloud/supported-nodes/. Disc
 
 This file is a **curated highlight reel**, not a complete enumeration. For exhaustive lookup, use the live API.
 
+## Model folder categories (28 total)
+
+When discovering installed models, query `/api/experiment/models/{folder}` for each category. From `folder_paths.py:14-63` in the upstream ComfyUI repo:
+
+**Core generation:**
+- `checkpoints` — Full diffusion checkpoints (SD1.5, SDXL, Flux, etc.)
+- `loras` — LoRA / LoCon / LyCORIS adapters
+- `vae` — Variational autoencoders
+- `vae_approx` — Lightweight approximate VAEs for previews (TAESD)
+- `embeddings` — Textual inversions
+- `text_encoders` — CLIP / T5 / Gemma text encoders for new architectures
+- `diffusion_models` — Unet-only / DiT-only weights (separated from full checkpoints)
+- `clip_vision` — Image encoders for IP-Adapter etc.
+
+**Conditioning:**
+- `controlnet` — ControlNet weights
+- `style_models` — Style adapter weights
+- `gligen` — GLIGEN grounding weights
+- `hypernetworks` — Legacy hypernet weights
+- `photomaker` — PhotoMaker character-consistency weights
+- `classifiers` — Classification model weights
+- `model_patches` — Patch-style fine-tunes
+
+**Image post-processing:**
+- `upscale_models` — Pixel-space upscalers (ESRGAN, RealESRGAN, NMKD, UltraSharp, etc.)
+- `latent_upscale_models` — Latent-space upscalers
+- `background_removal` — RMBG / BiRefNet weights
+- `detection` — Object detection weights (YOLO etc.)
+
+**Video / motion:**
+- `frame_interpolation` — RIFE etc.
+- `optical_flow` — Optical flow estimation weights
+- `geometry_estimation` — Depth / normal weights (DepthAnything, Lotus)
+
+**Audio:**
+- `audio_encoders` — Audio embedding models
+
+**Infrastructure:**
+- `configs` — Model config files
+- `diffusers` — HF diffusers-format model directories
+- `custom_nodes` — Custom node packages (Cloud-curated, not user-installable)
+
+When the skill needs to know what's available, iterate these categories — don't assume "loras" is the only path for adapter-style weights.
+
 ## Foundational utility
 
 - `ComfyUI_essentials`

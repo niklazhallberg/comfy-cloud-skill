@@ -69,6 +69,30 @@ For content policy: the proxy itself is the policy-enforcement layer ([Rule 6 + 
 
 **Workaround for missing custom nodes:** subgraph splitting — run subgraph A on Cloud, download intermediate via `/api/view`, run the custom-node step locally, re-upload via `/api/upload/image`, run subgraph B on Cloud. Documented in [`pipeline-patterns.md`](./pipeline-patterns.md) where applicable.
 
+## Docs OpenAPI spec is a subset of upstream
+
+The Comfy Cloud docs publish `openapi-cloud.yaml` (3732 lines). The upstream ComfyUI repo publishes `openapi.yaml` (8725 lines) — a **superset** that includes both OSS-only and Cloud-only endpoints.
+
+Both files are pinned in `research/`:
+- `research/openapi-cloud.yaml` — Cloud's documented surface
+- `research/openapi-oss-upstream.yaml` — upstream truth
+
+**Endpoints in upstream that aren't in the docs spec** (may or may not be exposed on Cloud — verify by probing with your API key):
+
+- `/api/secrets/{id}` and related — user-stored HF/Civitai tokens
+- `/api/tags` — asset tag management
+- `/api/node_replacements` — node-class aliases for backwards compat
+- `/api/vhs/queryvideo`, `/api/vhs/viewvideo`, `/api/vhs/viewaudio` — VHS-specific media endpoints
+- `/api/i18n` — frontend localization
+- `/api/feedback` — user feedback submission
+- `/api/files/mask-layers` — mask layer helpers
+- Various `/api/experiment/*` namespaces beyond models
+
+**Internal routes** (frontend-only, never expose in skill features):
+- `/internal/logs`, `/internal/files/{type}`, `/internal/folder_paths`, `/internal/logs/subscribe`
+
+**How the skill handles it:** treat docs `openapi-cloud.yaml` as the **contract** (what Comfy promises). Treat upstream `openapi-oss-upstream.yaml` as the **superset** (what the codebase implements). When something appears only in upstream, the skill should probe before relying on it, and never expose an unverified endpoint as a stable capability.
+
 ## Things the skill should treat as runtime-verifiable
 
 Per the above, the skill should **not** make these guarantees in copy:

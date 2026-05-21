@@ -6,20 +6,61 @@ Partner Nodes are workflow nodes that internally call **external third-party API
 - They require `extra_data.api_key_comfy_org` in the submission payload
 - Their outputs come from external services with their own latency and reliability characteristics
 
-## Known Partner-Node providers
+## Known Partner-Node providers (71 packages in upstream)
 
-- **Kling** (video generation)
-- **Luma Labs**
-- **Nano Banana** (Google's Imagen 3)
-- **Grok / xAI**
-- **Runway**
-- **Seedance** (ByteDance)
-- **Seedream** (ByteDance)
-- **Ideogram**
-- **Flux Pro** (Black Forest Labs hosted; distinct from open Flux Schnell/Dev)
-- **Hunyuan 3D** (Tencent)
+The full catalog from upstream `comfy_api_nodes/` — verify each is exposed on Cloud by checking `/api/object_info` at runtime.
 
-Discover the current set at runtime by filtering `/api/object_info` for nodes whose `python_module` or `category` indicates Partner status, or by maintaining a curated `class_type` list.
+**Video generation:**
+- Kling (Kuaishou)
+- Luma (Dream Machine)
+- Runway
+- Sora 2 / Sora 2 Pro (OpenAI — note: some Sora nodes carry a deprecation notice in upstream code)
+- Vidu (ShengShu)
+- Veo / Veo2 (Google DeepMind)
+- Pixverse
+- Wavespeed
+- LTXv (Lightricks — also available as open model)
+- WAN / Wan 2.x (Alibaba — also available as open model)
+- Minimax (Hailuo)
+- ByteDance video — Seedance (image-to-video), ByteDance 2 (newer text-to-video, first-last-frame, reference variants)
+
+**Image generation:**
+- Bria
+- Recraft
+- Stability (SDXL, Stable Diffusion 3)
+- Ideogram
+- Magnific (upscaling)
+- Topaz (upscaling)
+- HitPaw
+- Reve
+- Nano Banana (Google's Imagen 3)
+- Flux Pro (Black Forest Labs hosted; distinct from open Flux Schnell/Dev)
+- ByteDance image — Seedream v1 & v2
+
+**3D:**
+- Rodin
+- Tripo
+- Meshy
+- Hunyuan 3D (Tencent)
+- Sonilo
+
+**LLM / VLM:**
+- Grok (xAI)
+- Claude (Anthropic)
+- Gemini (Google)
+- OpenAI (GPT family)
+- OpenRouter (multi-provider routing)
+- ByteDance (Doubao LLM)
+
+**Audio / voice:**
+- ElevenLabs (TTS, voice cloning)
+
+**ByteDance asset creation:**
+- `ByteDanceCreateImageAsset`, `ByteDanceCreateVideoAsset` — for creating ByteDance-side asset references for downstream nodes
+
+Source: `comfy_api_nodes/nodes_*.py` (71 files) in upstream ComfyUI. Cloud installs a subset — confirm by checking `/api/object_info` for the relevant `class_type`s before exposing.
+
+**For runtime discovery:** filter `/api/object_info` for nodes whose `python_module` starts with `comfy_api_nodes.` or whose `category` indicates partner status, then maintain that as the curated list.
 
 ## Required submission shape
 

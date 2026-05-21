@@ -70,14 +70,41 @@ This is what the frontend does when you press "Queue". Outside the browser, opti
 
 One-way lossy — positions and widget orderings are guessed. Don't rely on round-tripping.
 
-## Hidden inputs (do NOT include in your JSON)
+## Hidden inputs (do NOT include in node `inputs`)
 
-The server injects these automatically. Including them in your submission either is silently ignored or causes validation errors:
+The server injects these automatically into a node's call site when the node declares them via its `hidden` attribute. Setting them inside a node's `inputs` in your submission is silently ignored or causes validation errors. There are **six**, not four — earlier docs missed two.
 
-- `PROMPT` — the full graph (server uses this to reference the workflow)
-- `UNIQUE_ID` — the current node's ID
-- `EXTRA_PNGINFO` — metadata dict for `SaveImage`
-- `API_KEY_COMFY_ORG` — Partner-Node auth, sourced from `extra_data.api_key_comfy_org` at the *submission* level (not inside any node's `inputs`)
+| Hidden input | Source | Purpose |
+|---|---|---|
+| `prompt` | server | The full graph (server uses this to reference the workflow) |
+| `unique_id` | server | The current node's string ID in the workflow |
+| `extra_pnginfo` | `extra_data.extra_pnginfo` | Metadata dict embedded by `SaveImage` into output PNGs |
+| `dynprompt` | server | Dynamic prompt object — **new** field for subgraph / blueprint support |
+| `auth_token_comfy_org` | `extra_data.auth_token_comfy_org` | OAuth-style token for Partner Nodes (distinct from API key) |
+| `api_key_comfy_org` | `extra_data.api_key_comfy_org` | Partner-Node auth — the same X-API-Key value, passed inside the workflow submission |
+
+Source: `comfy_api/latest/_io.py:1341-1405` in the upstream ComfyUI repo.
+
+The last two go at the *submission level* in `extra_data`, not inside any node's `inputs`:
+
+```json
+{
+  "prompt": { /* graph */ },
+  "extra_data": {
+    "api_key_comfy_org": "<your-X-API-key>",
+    "auth_token_comfy_org": "<your-token-if-using-oauth-flow>"
+  }
+}
+```
+
+`SENSITIVE_EXTRA_DATA_KEYS` are stripped from history by the server, so auth tokens never appear in `/api/jobs/{id}` responses or `/api/history_v2` payloads.
+
+## Node attributes that matter at the graph level
+
+Two flags on a node's Python class control how it participates in execution:
+
+- **`OUTPUT_NODE = True`** — only nodes with this attribute trigger execution when a workflow runs. Without it, the node is intermediate (its outputs are computed only if a downstream `OUTPUT_NODE` needs them). This is why a workflow with just `KSampler` (no `SaveImage` / `PreviewImage`) does nothing visible. `SaveImage` is an `OUTPUT_NODE`; `PreviewImage` also is, but its output is ephemeral.
+- **`HAS_INTERMEDIATE_OUTPUT = True`** — the node can emit intermediate outputs *during* execution (streamed via WebSocket `executed` events before the node fully finishes). Relevant for nodes that produce per-step previews or partial results.
 
 ## Partner Nodes
 

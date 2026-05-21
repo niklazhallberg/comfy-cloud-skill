@@ -6,6 +6,8 @@ Conventions: ✅ = officially documented and stable. ⚠️ = documented but exp
 
 **Identifier convention:** `prompt_id` returned from `POST /api/prompt` and `job_id` in the `/api/jobs/*` endpoints are **the same value**. Treat them as one identifier across the proxy — `jobId` internally is fine.
 
+**Dual routing:** every route the server registers at `/path` is automatically also at `/api/path`. Examples below use the `/api/*` form (which is what docs and clients standardize on), but bare paths work too.
+
 ## Base + auth
 
 - **Base URL**: `https://cloud.comfy.org`
@@ -28,7 +30,7 @@ Conventions: ✅ = officially documented and stable. ⚠️ = documented but exp
 | `GET /api/jobs/{job_id}` ✅ | Full job detail | Includes `workflow`, `outputs`, `preview_output`, `execution_status`, `execution_meta`, structured `execution_error`. **Canonical "get me everything" call. Prefer over `/api/history_v2/{prompt_id}`.** |
 | `GET /api/queue` ✅ | Queue state | `{ queue_running: [...], queue_pending: [...] }`. Items are tuple arrays `[job_number, prompt_id, workflow_json, output_node_ids, metadata]`. |
 | `POST /api/queue` ✅ | Cancel pending | `{ "delete": [...] }` or `{ "clear": true }`. **Affects pending only.** |
-| `POST /api/interrupt` ✅ | Cancel running | Distinct from `/api/queue`. Affects all running jobs for the authed user. |
+| `POST /api/interrupt` ✅ | Cancel running | Distinct from `/api/queue`. **Now granular** — accepts `{ "prompt_id": "<id>" }` in the body to target a specific running job. With empty body, affects all running jobs for the authed user. The interrupted job emits `execution_interrupted` over WebSocket. |
 | `GET /api/history_v2` ⚠️ DEPRECATED | Execution history (lightweight) | **Officially deprecated in favor of `GET /api/jobs`.** Kept for backwards compatibility. Workflow stripped from `extra_pnginfo`. |
 | `GET /api/history_v2/{prompt_id}` ⚠️ DEPRECATED | Full history for one prompt | **Officially deprecated in favor of `GET /api/jobs/{job_id}`.** Dict keyed by `prompt_id`. |
 | `POST /api/history` ✅ | Manage history | `{ "delete": [...] }` or `{ "clear": true }`. |
@@ -115,6 +117,28 @@ OSS-only routes (in `comms_routes`) that **don't exist** on Cloud — proxy must
 | 500 | Internal server error |
 | 503 | Service unavailable |
 
+## Upstream-only / OSS endpoints (Cloud presence unverified)
+
+The upstream `research/openapi-oss-upstream.yaml` (8725 lines) is a superset of the docs `research/openapi-cloud.yaml` (3732 lines). The following endpoints appear in upstream but **may or may not** be exposed on Cloud — verify with a probe before relying on them:
+
+| Method & Path | Probable purpose | Verification |
+|---|---|---|
+| `GET /api/secrets`, `GET\|PUT\|DELETE /api/secrets/{id}` | User-stored HF/Civitai tokens (for `/api/assets/download` of private models) | Hit with `X-API-Key`; 200/404 = exists, 401 = exists-but-auth-issue, full-page HTML = SPA fallback (doesn't exist) |
+| `GET /api/tags` | List all asset tags with usage counts | Probe |
+| `GET /api/node_replacements` | Backwards-compatible node aliases (when class_types are renamed) | Probe |
+| `GET /api/vhs/queryvideo`, `GET /api/vhs/viewvideo`, `GET /api/vhs/viewaudio` | VideoHelperSuite-specific media playback | Probe; likely Cloud-exposed since VHS is pre-installed |
+| `GET /api/i18n` | Frontend localization strings | Probably Cloud-exposed (UI needs it) |
+| `POST /api/feedback` | User feedback submission | Probe |
+
+**Internal routes** (frontend-only, not in OpenAPI, usually not exposed publicly on Cloud):
+
+- `GET /internal/logs` — Raw server logs
+- `GET /internal/files/{directory_type}` — List files in `output` / `input` / `temp`
+- `GET /internal/folder_paths` — Map of all model folder categories
+- `PATCH /internal/logs/subscribe` — Subscribe to live log streaming
+
+Don't build skill features around `/internal/*` endpoints — they're not part of the public contract.
+
 ## Cross-references
 
 - WebSocket message types and binary frame layouts: [`websocket-protocol.md`](./websocket-protocol.md)
@@ -122,3 +146,4 @@ OSS-only routes (in `comms_routes`) that **don't exist** on Cloud — proxy must
 - Error codes + exception_type enum: [`errors-and-limits.md`](./errors-and-limits.md)
 - Asset management deep-dive: [`asset-management.md`](./asset-management.md)
 - Cost / concurrency: [`cost-and-concurrency.md`](./cost-and-concurrency.md)
+- Docs spec vs upstream spec diff: [`conflicts-and-limitations.md`](./conflicts-and-limitations.md)
