@@ -5,7 +5,7 @@ when_to_use: TRIGGER when the user mentions Comfy Cloud, ComfyUI, cloud.comfy.or
 compatibility: Comfy Cloud (cloud.comfy.org), Claude Code, comfy-cloud-proxy MCP server (github.com/niklazhallberg/comfy-cloud-proxy)
 metadata:
   author: Niklaz Hallberg / Valtech RADON
-  version: 0.1.0
+  version: 0.2.0
   mcp-server: comfy-cloud-proxy
   category: ai-pipeline-design
   tags: [comfyui, comfy-cloud, mcp, image-generation, video-generation, pipeline, sdxl, flux, wan, ltx]
@@ -112,6 +112,7 @@ Authoritative inventory (current files in `references/`):
 - **`cost-and-concurrency.md`** — credit math, concurrency budgeting, queue-depth handling.
 - **`mcp-tool-schemas.md`** — the `comfy-cloud-proxy` MCP server's tool interface and contract.
 - **`conflicts-and-limitations.md`** — where official Comfy Cloud sources disagree, deprecated endpoints, asset-vs-model-install distinction, runtime-verifiable claims.
+- **`workflow-authoring-style.md`** — **binding** authoring conventions for every workflow produced by this skill: canvas grouping, README Note-node, inline node notes, sibling `.md` user manual, effect-based parameter docs, left-to-right flow. Applies from v1, not after v2 optimization.
 
 `research/` contains the raw AI deep-dives (Perplexity, Gemini 3.5 Flash, Claude Opus 4.7) that informed the references, plus a pinned copy of `openapi-cloud.yaml`. Use for source-tracing, not first-line lookup — the synthesized `references/` files are the working knowledge.
 
@@ -148,7 +149,7 @@ Currently shipped templates (status as of skill version):
 - `wan22-i2v.json` — Wan 2.2 image-to-video
 - `ltx-video.json` — LTX-Video t2v
 
-To build a new template: read `references/workflow-format.md` and `references/pipeline-patterns.md`, draft the graph, run `scripts/validate_workflow.py`, commit alongside the others.
+To build a new template: read `references/workflow-format.md` and `references/pipeline-patterns.md`, draft the graph, **apply [`references/workflow-authoring-style.md`](./references/workflow-authoring-style.md) (canvas grouping, README Note-node, inline notes, sibling `.md` manual)** — non-negotiable from v1 — then run `scripts/validate_workflow.py`, commit alongside the others.
 
 ## Cost guards (always)
 

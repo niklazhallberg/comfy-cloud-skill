@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0 — 2026-05-22
+
+Adds binding workflow authoring conventions and a generic canvas → API conversion script. Derived from learnings during the first real customer pipeline build (Husqvarna Automower v1 A/B test). Pure-generic additions only — customer-specific templates live outside the skill.
+
+**Added**
+- `references/workflow-authoring-style.md` — **binding** authoring conventions for every workflow produced by this skill (~200 lines). Codifies the hybrid `canvas + api + md` triple-file format, README Note-node requirement, color-coded phase groups, inline node notes near key nodes, effect-based parameter documentation, left-to-right canvas flow, single-purpose over multi-mode workflows. Applies from v1, not after v2 optimization.
+- `scripts/canvas_to_api.py` — generic canvas-format → API-format converter (~150 lines). Strips `Note`, `MarkdownNote`, `PrimitiveNode`, `Reroute` non-executable nodes. Handles the `control_after_generate` widget quirk on seed inputs. Schema-validates against live `/api/object_info` via `--fetch-from-cloud`. Refuses to write output if any required input is missing.
+
+**Updated**
+- `SKILL.md` — adds `references/workflow-authoring-style.md` to the parts-bin index. "To build a new template" instructions now reference the authoring-style rules as non-negotiable from v1. Frontmatter version bumped 0.1.0 → 0.2.0.
+
+**Note on scope**
+Customer-specific workflows (e.g. Husqvarna Automower templates) are NOT in this commit. They live in customer project directories. This commit captures only the generic patterns that any Comfy Cloud workflow should follow.
+
 ## 0.1.2 — 2026-05-21
 
 Incorporates findings from a deep code-read of the upstream `comfy-org/ComfyUI` repository — significantly expands what the skill knows about Comfy Cloud's actual surface area.
