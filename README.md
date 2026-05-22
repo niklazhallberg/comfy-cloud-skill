@@ -2,7 +2,7 @@
 
 A Claude Code skill for designing and running ComfyUI pipelines on [Comfy Cloud](https://cloud.comfy.org) from natural-language briefs.
 
-Pairs with the [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) MCP server: the proxy is the execution layer; this skill is the design and orchestration brain on top.
+Pairs with the [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) MCP server (a companion project, also custom-built by Niklaz Hallberg): the proxy is the execution layer; this skill is the design and orchestration brain on top.
 
 ## What this is
 
@@ -57,7 +57,9 @@ valtech-radon-comfy-cloud-skill/
 │   ├── pipeline-phases.md
 │   ├── asset-management.md
 │   ├── cost-and-concurrency.md
-│   └── mcp-tool-schemas.md
+│   ├── mcp-tool-schemas.md
+│   ├── conflicts-and-limitations.md
+│   └── workflow-authoring-style.md
 ├── research/             # Raw deep-dives that informed the references (source provenance)
 │   ├── perplexity-2026-05-21.md
 │   ├── gemini-3-5-flash-2026-05-21.md
@@ -69,13 +71,22 @@ valtech-radon-comfy-cloud-skill/
 
 ## Status
 
-**Skill version: 0.1.0** — Initial public structure. SKILL.md is the locked entry point. Reference files are stubs being progressively populated from the research material; see [CHANGELOG.md](./CHANGELOG.md) for what's stabilized.
+**Skill version: 0.2.0** — SKILL.md is the locked entry point. References include binding authoring conventions and a canvas → API conversion script (added in 0.2.0). See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 This skill is part of the Valtech RADON internal AI tooling, published openly so the wider ComfyUI + Claude Code community can build on it.
 
 ## Related
 
-- [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) — the MCP server this skill operates through
+- [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) — the MCP server this skill operates through (companion project by the same author)
 - [Comfy Cloud](https://cloud.comfy.org) — the hosted Comfy execution platform
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) — upstream Comfy project
 - [Claude Code](https://claude.com/claude-code) — the agent runtime this skill loads into
+
+## Contact
+
+Questions, feedback, or contributions? Contact the repo owner:
+
+**Niklaz Hallberg** — [niklaz.hallberg@valtech.com](mailto:niklaz.hallberg@valtech.com)
+Valtech RADON, Sweden (V_RADON, SE)
+
+Niklaz is also the author of the companion [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) MCP server.
