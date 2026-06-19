@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 — 2026-06-08
+
+Adds **Phase 6 — live canvas render** as the binding final step. Final delivery is now the live graph in the user's browser, not a JSON file or screenshot. Procedure: push to userdata for persistence, then open a new tab on cloud.comfy.org via the Playwright MCP (its profile shares JWT with the user's Chrome) and call `await window.app.loadGraphData(data, true, true, name)` with inline JSON. Cookie auth fails on `/api/userdata/*` so the JSON must be inlined into the `browser_evaluate` body — fetching from inside the browser returns 403 `auth_type_not_allowed`. `app.canvas.fitView()` does not exist on the Cloud build; center the view manually via `canvas.ds.scale + ds.offset + setDirty(true, true)`. Then screenshot, verify, hand off to the user with "hit Save to persist". New reference: `references/canvas-render-via-playwright.md`. New operational rule 13 in SKILL.md.
+
 ## 0.2.0 — 2026-05-22
 
 Adds binding workflow authoring conventions and a generic canvas → API conversion script. Derived from learnings during the first real customer pipeline build (Husqvarna Automower v1 A/B test). Pure-generic additions only — customer-specific templates live outside the skill.

@@ -5,7 +5,7 @@ when_to_use: TRIGGER when the user mentions Comfy Cloud, ComfyUI, cloud.comfy.or
 compatibility: Comfy Cloud (cloud.comfy.org), Claude Code, comfy-cloud-proxy MCP server (github.com/niklazhallberg/comfy-cloud-proxy)
 metadata:
   author: Niklaz Hallberg / Valtech RADON
-  version: 0.2.0
+  version: 0.2.1
   mcp-server: comfy-cloud-proxy
   category: ai-pipeline-design
   tags: [comfyui, comfy-cloud, mcp, image-generation, video-generation, pipeline, sdxl, flux, wan, ltx]
@@ -45,7 +45,7 @@ Edge case: if the user says "make an image" without naming Comfy or a stack, ask
 
 ## Pipeline overview
 
-Six phases, sequential except Phase 2.5 (optional). Each has explicit definition-of-done.
+Seven phases, sequential except Phase 2.5 (optional). Each has explicit definition-of-done.
 
 | Phase | Focus | Time | DoD signal |
 |---|---|---|---|
@@ -57,8 +57,10 @@ Six phases, sequential except Phase 2.5 (optional). Each has explicit definition
 | 3 | Submit + monitor (WebSocket progress, fallback to polling) | varies — model & params dependent | `execution_success` received OR `execution_error` surfaced with node-level detail |
 | 4 | Output retrieval + manifest write | ~5–30s | Files downloaded via `/api/view`, manifest saved alongside output |
 | 5 | Iterate (parameter tweak, seed sweep, A/B variant) — loop back to Phase 1 with cached upstream | varies | User signs off, or new variant approved |
+| 6 | **Render on user's canvas** — push to userdata, open new tab on cloud.comfy.org via Playwright, `app.loadGraphData()`, screenshot verify | ~30s | Live graph visible in Playwright Chrome window on user's logged-in Cloud account |
 
-Per-phase detail: `references/pipeline-phases.md`.
+Per-phase detail: `references/pipeline-phases.md`. Phase 6 details:
+`references/canvas-render-via-playwright.md`.
 
 ### Pipeline checklist
 
@@ -74,6 +76,7 @@ Comfy Cloud Pipeline Progress:
 - [ ] Phase 3: Submitted, monitored to completion
 - [ ] Phase 4: Output retrieved, manifest written
 - [ ] Phase 5: Iteration approved / next variant
+- [ ] Phase 6: Canvas rendered live in user's browser via Playwright
 ```
 
 ## Operational rules (non-negotiable)
@@ -92,6 +95,7 @@ Twelve locked policies. Full rationale + edge cases per rule: `references/operat
 10. **Treat HTTP 429 as "subscription inactive", NOT rate limit.** Surface the subscription error and stop. No backoff retry.
 11. **Filter WebSocket events by `prompt_id`.** The `clientId` query param is currently ignored server-side; you receive events for all of the user's concurrent jobs. Filter in code, every time.
 12. **Read-back after submit.** `prompt_id` returned ≠ workflow valid. Confirm via WS `execution_start` or `GET /api/job/{prompt_id}/status` that the graph was accepted, not just queued.
+13. **Final delivery is the live canvas, not the JSON.** Phase 6 is non-optional unless the user explicitly says "just the JSON" or Playwright is unavailable. Push to userdata, open a new tab on `cloud.comfy.org` via Playwright MCP (its profile shares JWT with the user's Chrome), call `await window.app.loadGraphData(data, true, true, name)` with inline JSON (cookie auth fails on `/api/userdata/*` — must inline), center the view via `canvas.ds.scale + ds.offset` (no `fitView()` on Cloud build), screenshot verify, then tell the user to hit Save. See `references/canvas-render-via-playwright.md`.
 
 ## Reference parts-bin
 
@@ -113,6 +117,7 @@ Authoritative inventory (current files in `references/`):
 - **`mcp-tool-schemas.md`** — the `comfy-cloud-proxy` MCP server's tool interface and contract.
 - **`conflicts-and-limitations.md`** — where official Comfy Cloud sources disagree, deprecated endpoints, asset-vs-model-install distinction, runtime-verifiable claims.
 - **`workflow-authoring-style.md`** — **binding** authoring conventions for every workflow produced by this skill: canvas grouping, README Note-node, inline node notes, sibling `.md` user manual, effect-based parameter docs, left-to-right flow. Applies from v1, not after v2 optimization.
+- **`canvas-render-via-playwright.md`** — **binding** Phase 6 procedure: push to userdata, open Playwright tab on cloud.comfy.org (shares JWT auth), `app.loadGraphData()` with inline JSON, manual view centering, screenshot verify. Final delivery is the live canvas in the user's browser, not a JSON file.
 
 `research/` contains the raw AI deep-dives (Perplexity, Gemini 3.5 Flash, Claude Opus 4.7) that informed the references, plus a pinned copy of `openapi-cloud.yaml`. Use for source-tracing, not first-line lookup — the synthesized `references/` files are the working knowledge.
 
@@ -197,4 +202,4 @@ For deeper exploration, read `references/pipeline-phases.md` and `references/pip
 
 ---
 
-**Skill version: 0.1.0** — initial public structure. Reference files are skeletons being filled out; see `CHANGELOG.md` for what's stabilized vs. in-progress.
+**Skill version: 0.2.1** — Phase 6 (live canvas render via Playwright) added as binding final step. See `references/canvas-render-via-playwright.md` and `CHANGELOG.md`.
