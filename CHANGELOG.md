@@ -1,12 +1,28 @@
 # Changelog
 
+## 0.2.2 — 2026-09-26
+
+Brings the skill in line with what the repo and the proxy actually ship.
+
+**Fixed**
+- `SKILL.md`, `references/pipeline-phases.md`, `references/pipeline-patterns.md` referenced a `templates/` directory and `scripts/validate_workflow.py` that were never shipped. The skill now builds from the patterns in `references/pipeline-patterns.md` and validates via `get_object_info` / `scripts/canvas_to_api.py --fetch-from-cloud`. Working workflows stay in the project that uses them.
+- `references/mcp-tool-schemas.md` listed most proxy tools as "planned". Rewritten for proxy v0.3.0: all 12 shipped tools, the `submit_workflow` placeholder + `max_cost_usd` contract, `dry_run`, and the end-to-end invocation order.
+- Cost guards (SKILL.md, Rule 8) now use the proxy's `max_cost_usd` gate and `dry_run` estimate instead of a local script.
+
+**Added**
+- `LICENSE` (MIT), `research/README.md`.
+- `references/_growth-protocol-pointer.md` now summarises the protocol inline, since the shared protocol repo is private.
+
+**Docs**
+- README rewritten: architecture diagram, phase overview, design decisions, scope & limitations, correct install path.
+
 ## 0.2.1 — 2026-06-08
 
 Adds **Phase 6 — live canvas render** as the binding final step. Final delivery is now the live graph in the user's browser, not a JSON file or screenshot. Procedure: push to userdata for persistence, then open a new tab on cloud.comfy.org via the Playwright MCP (its profile shares JWT with the user's Chrome) and call `await window.app.loadGraphData(data, true, true, name)` with inline JSON. Cookie auth fails on `/api/userdata/*` so the JSON must be inlined into the `browser_evaluate` body — fetching from inside the browser returns 403 `auth_type_not_allowed`. `app.canvas.fitView()` does not exist on the Cloud build; center the view manually via `canvas.ds.scale + ds.offset + setDirty(true, true)`. Then screenshot, verify, hand off to the user with "hit Save to persist". New reference: `references/canvas-render-via-playwright.md`. New operational rule 13 in SKILL.md.
 
 ## 0.2.0 — 2026-05-22
 
-Adds binding workflow authoring conventions and a generic canvas → API conversion script. Derived from learnings during the first real customer pipeline build (Husqvarna Automower v1 A/B test). Pure-generic additions only — customer-specific templates live outside the skill.
+Adds binding workflow authoring conventions and a generic canvas → API conversion script. Derived from learnings during the first production client pipeline build (a product-visualization A/B test). Pure-generic additions only — customer-specific templates live outside the skill.
 
 **Added**
 - `references/workflow-authoring-style.md` — **binding** authoring conventions for every workflow produced by this skill (~200 lines). Codifies the hybrid `canvas + api + md` triple-file format, README Note-node requirement, color-coded phase groups, inline node notes near key nodes, effect-based parameter documentation, left-to-right canvas flow, single-purpose over multi-mode workflows. Applies from v1, not after v2 optimization.
@@ -16,7 +32,7 @@ Adds binding workflow authoring conventions and a generic canvas → API convers
 - `SKILL.md` — adds `references/workflow-authoring-style.md` to the parts-bin index. "To build a new template" instructions now reference the authoring-style rules as non-negotiable from v1. Frontmatter version bumped 0.1.0 → 0.2.0.
 
 **Note on scope**
-Customer-specific workflows (e.g. Husqvarna Automower templates) are NOT in this commit. They live in customer project directories. This commit captures only the generic patterns that any Comfy Cloud workflow should follow.
+Client-specific workflows are NOT in this commit. They live in customer project directories. This commit captures only the generic patterns that any Comfy Cloud workflow should follow.
 
 ## 0.1.2 — 2026-05-21
 

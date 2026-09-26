@@ -1,96 +1,61 @@
 # MCP Tool Schemas
 
-The `comfy-cloud-proxy` MCP server (https://github.com/niklazhallberg/comfy-cloud-proxy) is the execution layer this skill operates through. This file documents the tools the server exposes and how to invoke them effectively.
+The [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) MCP server is the execution layer this skill operates through. This file documents the tools it exposes (proxy **v0.3.0**) and how to invoke them.
 
-## Currently shipped tools
+## Shipped tools
 
-### `ping`
+| Tool | Signature (abridged) | Returns |
+|---|---|---|
+| `ping` | `()` | `pong` |
+| `get_object_info` | `(nodeName?)` | Without arg: `{ totalNodes, sampleNodes }`. With arg: full NodeInfo schema for that `class_type` |
+| `upload_image` | `(filePath, type="input")` | `{ name, subfolder, type, clientHash, assetSeenOnCloud }` — reference `name` in `LoadImage` |
+| `upload_mask` | `(filePath, originalRef: { filename, subfolder?, type? }, type="input")` | Mask layer metadata |
+| `submit_workflow` | `(workflow, max_cost_usd, inputs?, partnerNodeAuth=true, extraData?, dry_run?)` | `{ promptId, readBackStatus, cost }`, or `{ dryRun: true, cost, workflow }` |
+| `get_job_status` | `(promptId)` | Full job: status, outputs, `execution_meta`, `execution_error` |
+| `view_output` | `(filename, savePath, subfolder?, type="output", channel="rgba")` | `{ savedTo, sizeBytes, contentType, sha256 }` |
+| `write_manifest` | `(promptId, template, workflowApiPath, params, seed, partnerNodeCosts, …, savePath)` | `{ savedTo, totalAssetCostUsd, … }` — satisfies Rule 4 |
+| `upload_workflow_to_userdata` | `(localPath, remotePath?, overwrite=true)` | `{ accessibleAt }` — Phase 6 step 1 |
+| `delete_workflow_from_userdata` | `(remotePath)` | `{ deletedPath, httpStatus }` |
+| `submit_simple_txt2img` / `export_simple_txt2img_workflow` | `(prompt, width?, height?, steps?, cfg?, seed?)` | Minimal SD1.5 smoke test |
 
-Connectivity check. Returns `pong`. Use to verify the MCP server is wired before attempting a generation.
+### `submit_workflow` — the main entry point
 
-### `get_object_info`
-
-Fetch the live node catalog from Comfy Cloud.
-
-```
-get_object_info()
-  → { totalNodes: number, sampleNodes: string[] }
-
-get_object_info(nodeName: string)
-  → full NodeInfo schema for that class_type
-```
-
-**Use for:** discovering what's installed, what combo values a node accepts, what input types are required.
-
-### `submit_simple_txt2img`
-
-Submit a minimal SD1.5 txt2img workflow. Non-blocking; returns the `prompt_id`.
-
-```
-submit_simple_txt2img({
-  prompt: string,            // required
-  negativePrompt?: string,
-  width?: number,            // default 512, range 64–2048
-  height?: number,           // default 512
-  steps?: number,            // default 20, range 1–150
-  cfg?: number,              // default 7, range 0–30
-  seed?: number              // generated if omitted
-})
-  → { promptId, number, nodeErrors, seed, checkpoint, workflow }
-```
-
-### `export_simple_txt2img_workflow`
-
-Build the same SD1.5 txt2img workflow as above and write it to `output/simple-txt2img-workflow.json`. Doesn't call the Cloud API. Useful for inspecting or hand-editing the graph before submission.
-
-## Planned tools (not yet shipped)
-
-The proxy roadmap, in priority order:
-
-| Tool | Purpose |
-|---|---|
-| `wait_for_prompt(prompt_id, timeout?)` | Block until `execution_success` / `error`; surface progress |
-| `get_prompt_outputs(prompt_id)` | Return canonical outputs from `/api/jobs/{id}` |
-| `fetch_output(filename, type)` | Wrap `/api/view`, follow 302, return bytes or MCP resource |
-| `cancel_prompt(prompt_id)` | `POST /api/queue {delete: [id]}` |
-| `interrupt_current()` | `POST /api/interrupt` |
-| `get_queue()` | Running + pending |
-| `list_capabilities()` | Cached `/api/object_info`, indexed |
-| `list_models(category)` | Available checkpoints / LoRAs / VAEs / upscalers / ControlNets |
-| `validate_workflow(workflow)` | Local validation against object_info before submission |
-| `upload_image(path)` | `POST /api/upload/image` |
-| `upload_asset_from_url(url, tags)` | `POST /api/assets/download` from HF/Civitai with task polling |
-| `submit_workflow(workflow, extra_data?)` | Generic submit (any API-format JSON) |
-| `submit_img2img(...)`, `submit_inpaint(...)`, etc. | Template-driven submitters per pipeline class |
-
-When invoking the skill, prefer the highest-level tool that fits. Reach for `submit_workflow` only when no template matches.
-
-## Configuration
-
-The proxy reads from `.env`:
-
-```
-COMFY_CLOUD_API_KEY=<your-key>
-COMFY_CLOUD_BASE_URL=https://cloud.comfy.org   # optional
-```
-
-If `COMFY_CLOUD_API_KEY` is missing, tools that hit the Cloud API return an `isError` MCP response with a clear message.
+- **`workflow`** — API-format JSON (never canvas format; Rule 1). String values of the exact form `"{{NAME}}"` are placeholders.
+- **`inputs`** — `{ NAME: value }` for every placeholder. Any unresolved placeholder → refusal, nothing submitted.
+- **`max_cost_usd`** — required hard ceiling. The proxy estimates Partner Node cost (static upper-bound table) plus a GPU baseline and refuses over budget with a per-node breakdown. This is the proxy-side enforcement of Rules 6 and 8 — still surface the estimate to the user before calling.
+- **`dry_run`** — resolve placeholders + run the cost gate, return the final graph and estimate, submit nothing. Needs no API key. Use it to show the user the cost before asking for approval.
+- **`partnerNodeAuth`** — injects `extra_data.api_key_comfy_org` (default on). Never set hidden inputs yourself (Rule 5).
 
 ## Invocation pattern
 
 ```
-1. ping                           // verify MCP is up
-2. get_object_info(nodeName)     // discover capabilities for the pipeline you want to build
-3. (build workflow per templates + validation)
-4. submit_*                      // returns prompt_id
-5. wait_for_prompt(prompt_id)    // (planned) — until then, the skill polls /api/job/{id}/status
-6. get_prompt_outputs(prompt_id) // (planned) — until then, the skill calls /api/jobs/{id} directly
-7. fetch_output(filename, type)  // (planned) — until then, the skill follows the 302 itself
+1. ping                                        // verify MCP is up
+2. get_object_info(nodeName)                   // Phase 1.5 — validate class_types + combo values
+3. upload_image / upload_mask                  // Phase 2.5, if the graph needs inputs
+4. submit_workflow(..., dry_run: true)         // Phase 2 — show cost, get approval
+5. submit_workflow(...)                        // Phase 3 — returns promptId
+6. get_job_status(promptId)                    // poll until success / error
+7. view_output(filename, savePath)             // Phase 4
+8. write_manifest(...)                         // Phase 4 — Rule 4
+9. upload_workflow_to_userdata(localPath)      // Phase 6 — then render via Playwright
 ```
 
-## Until planned tools land
+## Not yet in the proxy
 
-The skill scripts in `scripts/` (when shipped) bridge the gap by hitting the Cloud API directly using the same `COMFY_CLOUD_API_KEY`. This is acceptable as a transitional pattern but the eventual goal is for the MCP server to own all Cloud interactions.
+Handled by the skill directly (or out of scope) until they land:
+
+| Tool | Purpose |
+|---|---|
+| `wait_for_prompt(prompt_id, timeout?)` | Block on WebSocket until `execution_success` / `error` — until then, poll `get_job_status` |
+| `cancel_prompt` / `interrupt_current` / `get_queue` | Queue control |
+| `list_models(category)` | Wrap `GET /api/experiment/models/{folder}` |
+| `upload_asset_from_url(url, tags)` | `POST /api/assets/download` from HF/Civitai |
+
+## Configuration
+
+See the proxy's [README](https://github.com/niklazhallberg/comfy-cloud-proxy#configuration). Key variables: `COMFY_CLOUD_API_KEY` (required for real calls), `COMFY_CLOUD_BASE_URL`, `COMFY_DRY_RUN`.
+
+If `COMFY_CLOUD_API_KEY` is missing, tools that hit the Cloud API return an `isError` response with a clear message.
 
 ## Cross-references
 

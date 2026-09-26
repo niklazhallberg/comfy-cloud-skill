@@ -64,7 +64,7 @@ Estimate GPU-seconds from step count × per-step seconds for the chosen model cl
 
 **Why:** A Flux dev at 1024×1024 / 28 steps is ~30s; a Wan 2.2 i2v at 4 sec / 720p can be 5+ minutes. Without an estimate, the agent can casually queue work the user didn't intend to pay for.
 
-**How to apply:** Per-class baselines in [`cost-and-concurrency.md`](./cost-and-concurrency.md). Compute, compare to `$COMFY_BUDGET_SECONDS`, surface the breakdown, wait for `--budget-ok` if over.
+**How to apply:** Per-class baselines in [`cost-and-concurrency.md`](./cost-and-concurrency.md). Compute, compare to the user's budget (`$COMFY_BUDGET_SECONDS` if set), surface the breakdown, wait for `--budget-ok` if over. The proxy's `max_cost_usd` gate enforces a USD ceiling on every `submit_workflow` call as a second line of defence.
 
 ## 9. Never forward `X-API-Key` to GCS signed URLs
 

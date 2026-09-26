@@ -28,7 +28,7 @@ Detail for each phase from `SKILL.md`'s six-phase pipeline.
 
 **Steps:**
 
-1. Pick template from `templates/` matching the Phase 0 spec.
+1. Start from the matching pattern in `pipeline-patterns.md` (or the project's own saved workflow, if one exists).
 2. Override parameters from the brief (prompt text, dimensions, seed, model file, LoRA selections).
 3. For multi-step chains (refiner, upscale), wire latent passthroughs.
 4. Inject `extra_data.api_key_comfy_org` if any Partner Node is in the graph.

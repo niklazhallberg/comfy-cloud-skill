@@ -5,7 +5,7 @@ when_to_use: TRIGGER when the user mentions Comfy Cloud, ComfyUI, cloud.comfy.or
 compatibility: Comfy Cloud (cloud.comfy.org), Claude Code, comfy-cloud-proxy MCP server (github.com/niklazhallberg/comfy-cloud-proxy)
 metadata:
   author: Niklaz Hallberg / Valtech RADON
-  version: 0.2.1
+  version: 0.2.2
   mcp-server: comfy-cloud-proxy
   category: ai-pipeline-design
   tags: [comfyui, comfy-cloud, mcp, image-generation, video-generation, pipeline, sdxl, flux, wan, ltx]
@@ -81,7 +81,7 @@ Comfy Cloud Pipeline Progress:
 
 ## Operational rules (non-negotiable)
 
-Twelve locked policies. Full rationale + edge cases per rule: `references/operational-rules.md`.
+Thirteen locked policies. Full rationale + edge cases per rule: `references/operational-rules.md`.
 
 1. **API format only.** Never submit canvas-format ("workflow") JSON to `/api/prompt`. The format with `class_type` keys and flat node ID dictionary is the only legal input. See `references/workflow-format.md`.
 2. **Validate before submit.** Every `class_type` must exist in cached `/api/object_info`. Every combo input (sampler_name, scheduler, ckpt_name, lora_name, etc.) must be in the legal enum for the *current* Cloud instance. Don't trust intuition — validate.
@@ -136,35 +136,30 @@ This single brief composes from **5+ reference files**:
 
 No single file has the full answer. Your job is to compose.
 
-## Workflows you can run today
+## Workflows you can build
 
-Templates live in `templates/`. Each is API-format JSON, parameter-validated against a live `/api/object_info` snapshot. Use as starting points; never as immutable structures.
+This repo ships **patterns, not templates**. Working workflows are project assets and live in the project that uses them (with their `.canvas.json` + `.api.json` + `.md` triple — see `references/workflow-authoring-style.md`). Supported pipeline shapes, each documented in `references/pipeline-patterns.md`:
 
-Currently shipped templates (status as of skill version):
+- txt2img — SD1.5 / SDXL / Flux / Qwen
+- img2img — VAEEncode + reduced denoise
+- Inpainting — InpaintModelConditioning + mask input
+- ControlNet — single-guide conditioning
+- LoRA stack — multi-LoRA daisy-chain on any base
+- SDXL base + refiner — two-pass
+- Multi-pass upscale — e.g. UltimateSDUpscale post-chain
+- Video — AnimateDiff, Wan 2.2 i2v, LTX-Video
 
-- `txt2img-flux.json` — Flux Schnell / Dev base txt2img
-- `txt2img-sdxl.json` — SDXL base + optional refiner
-- `img2img.json` — VAEEncode + reduced denoise
-- `inpaint.json` — InpaintModelConditioning + mask input
-- `controlnet-pose.json` — ControlNet pose conditioning chain
-- `lora-stack.json` — Multi-LoRA daisy-chain on any base
-- `sdxl-refiner.json` — Two-pass base + refiner
-- `upscale-ultimate.json` — UltimateSDUpscale post-chain
-- `animatediff.json` — SD1.5 + AnimateDiff-Evolved
-- `wan22-i2v.json` — Wan 2.2 image-to-video
-- `ltx-video.json` — LTX-Video t2v
-
-To build a new template: read `references/workflow-format.md` and `references/pipeline-patterns.md`, draft the graph, **apply [`references/workflow-authoring-style.md`](./references/workflow-authoring-style.md) (canvas grouping, README Note-node, inline notes, sibling `.md` manual)** — non-negotiable from v1 — then run `scripts/validate_workflow.py`, commit alongside the others.
+To build a new template: read `references/workflow-format.md` and `references/pipeline-patterns.md`, draft the graph, **apply [`references/workflow-authoring-style.md`](./references/workflow-authoring-style.md) (canvas grouping, README Note-node, inline notes, sibling `.md` manual)** — non-negotiable from v1 — then validate every `class_type` and combo value with `get_object_info` (or convert a canvas export with `scripts/canvas_to_api.py --fetch-from-cloud`, which schema-validates as it converts). Store it in the project, not in this repo.
 
 ## Cost guards (always)
 
 Before every submit (Rule 8):
 
-1. Run `scripts/validate_workflow.py` against current `object_info` cache.
-2. Compute estimate: `sum(node.estimated_seconds) * tier.cost_per_second`. Per-node estimates live in `references/cost-and-concurrency.md`.
-3. Compare to `$COMFY_BUDGET_SECONDS` env var (or skill-default of 180 GPU-seconds).
-4. If over budget OR Partner Node present without opt-in: refuse, surface the breakdown, wait for explicit `--budget-ok` / `--partner-ok` from user.
-5. Log cost actuals after `execution_success` for budget calibration.
+1. Validate the graph against live `object_info` (Rule 2).
+2. Call `submit_workflow(..., dry_run: true)` with a `max_cost_usd` ceiling. The proxy returns the Partner Node + GPU-baseline estimate, or refuses with a per-node breakdown. For GPU-heavy graphs, cross-check with the per-class baselines in `references/cost-and-concurrency.md`.
+3. Surface the estimate. If a Partner Node is present or the estimate exceeds the user's budget, wait for explicit approval (`--partner-ok` / `--budget-ok`).
+4. Submit for real with the same `max_cost_usd` — the gate is enforced again server-side.
+5. Log cost actuals via `write_manifest` after `execution_success` for budget calibration.
 
 ## Lifecycle
 
@@ -195,11 +190,11 @@ For users new to this skill, the fastest path to a first output:
 
 1. Verify the `comfy-cloud-proxy` MCP server is connected: ask Claude to call `ping`.
 2. Ask: *"Generate a Flux Schnell test image: a red apple on a wooden table, 1024×1024, seed 42."*
-3. Skill picks `templates/txt2img-flux.json`, parameterizes, validates, pre-flights, submits, monitors, returns file path.
+3. The skill builds a Flux txt2img graph from `references/pipeline-patterns.md`, validates it, shows the dry-run cost, submits, monitors, and returns the file path.
 4. Iterate.
 
 For deeper exploration, read `references/pipeline-phases.md` and `references/pipeline-patterns.md`.
 
 ---
 
-**Skill version: 0.2.1** — Phase 6 (live canvas render via Playwright) added as binding final step. See `references/canvas-render-via-playwright.md` and `CHANGELOG.md`.
+**Skill version: 0.2.2** — aligned with comfy-cloud-proxy v0.3.0 (`submit_workflow` cost gate + `dry_run`). See `CHANGELOG.md`.
