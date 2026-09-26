@@ -1,4 +1,4 @@
-# valtech-radon-comfy-cloud-skill
+# comfy-cloud-skill
 
 A Claude Code skill for designing and running ComfyUI pipelines on [Comfy Cloud](https://cloud.comfy.org) from natural-language briefs.
 
@@ -20,7 +20,7 @@ It covers txt2img, img2img, inpainting, ControlNet, LoRA stacks, SDXL refiner ch
 ## Install
 
 ```bash
-git clone https://github.com/niklazhallberg/valtech-radon-comfy-cloud-skill.git ~/.claude/skills/comfy-cloud-pipeline-designer
+git clone https://github.com/niklazhallberg/-comfy-cloud-skill.git ~/.claude/skills/comfy-cloud-pipeline-designer
 ```
 
 Then in Claude Code:
@@ -40,7 +40,7 @@ You also need the `comfy-cloud-proxy` MCP server connected — see https://githu
 ## Repository layout
 
 ```
-valtech-radon-comfy-cloud-skill/
+comfy-cloud-skill/
 ├── SKILL.md              # Skill entry — frontmatter, voice mandate, operational rules, references index
 ├── README.md             # This file
 ├── CHANGELOG.md
@@ -73,8 +73,6 @@ valtech-radon-comfy-cloud-skill/
 
 **Skill version: 0.2.0** — SKILL.md is the locked entry point. References include binding authoring conventions and a canvas → API conversion script (added in 0.2.0). See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
-This skill is part of the Valtech RADON internal AI tooling, published openly so the wider ComfyUI + Claude Code community can build on it.
-
 ## Related
 
 - [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) — the MCP server this skill operates through (companion project by the same author)
@@ -86,7 +84,6 @@ This skill is part of the Valtech RADON internal AI tooling, published openly so
 
 Questions, feedback, or contributions? Contact the repo owner:
 
-**Niklaz Hallberg** — [niklaz.hallberg@valtech.com](mailto:niklaz.hallberg@valtech.com)
-Valtech RADON, Sweden (V_RADON, SE)
+**Niklaz Hallberg** — [niklaz.a.hallberg@gmail.com]
 
 Niklaz is also the author of the companion [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) MCP server.
