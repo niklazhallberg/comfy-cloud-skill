@@ -54,11 +54,11 @@ Detail for each phase from `SKILL.md`'s six-phase pipeline.
 
 **Checks:**
 
-- Cost estimate vs. budget. Surface the math.
+- `submit_workflow(..., dry_run: true)` → cost estimate. Surface the math.
 - Partner-Node detection → require opt-in if any.
 - Concurrency: in-flight count < `tier_limit - 1`?
 
-**DoD:** User has the cost/risk info and either gave a green light or constrained the request.
+**DoD:** User has seen the estimate and explicitly confirmed this submission — or constrained the request. The only exception is a session auto-submit budget the user stated themselves, with no Partner Nodes ([Rule 8](./operational-rules.md)).
 
 ## Phase 2.5 — Asset Uploads (optional)
 
@@ -79,7 +79,7 @@ Detail for each phase from `SKILL.md`'s six-phase pipeline.
 
 **Steps:**
 
-1. `POST /api/prompt` with the validated workflow.
+1. `submit_workflow` with the validated workflow — only after the Phase 2 confirmation (Rule 8).
 2. On 200, capture `prompt_id`. Check `node_errors` — if non-empty, abort.
 3. Open WebSocket to `wss://cloud.comfy.org/ws?clientId=<uuid>&token=<key>`.
 4. Filter incoming messages by `prompt_id`.

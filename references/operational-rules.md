@@ -44,11 +44,11 @@ Save `{prompt_id, template, expanded_workflow, params, seed, object_info_hash, s
 
 ## 6. Partner Nodes require explicit opt-in
 
-Detect by `class_type`. Surface estimated credit cost. Block submission until user passes `--partner-ok` (or equivalent skill-level signal).
+Detect by `class_type`. Surface estimated credit cost. Block submission until the user explicitly approves this call or batch (`--partner-ok` or an equivalent plain-language yes). This applies even when the user has opted into auto-submit under Rule 8.
 
 **Why:** Partner Nodes (Kling, Luma, Ideogram, Flux Pro, Nano Banana, etc.) call third-party APIs and bill credits separately from base GPU time. A single Partner Node run can cost 100× a normal generation. Surprise bills break trust.
 
-**How to apply:** Maintain a list of Partner Node `class_type`s (see [`partner-nodes.md`](./partner-nodes.md)). On validation, flag presence; surface estimated cost; require explicit user confirmation. Default to refusal.
+**How to apply:** Maintain a list of Partner Node `class_type`s (see [`partner-nodes.md`](./partner-nodes.md)). On validation, flag presence; surface estimated cost; require explicit user confirmation per call or per batch. Default to refusal.
 
 ## 7. Concurrency cap below tier limit
 
@@ -58,13 +58,26 @@ Default to `tier_limit - 1` (Creator: 2 of 3, Pro: 4 of 5).
 
 **How to apply:** Track in-flight `prompt_id`s in the proxy. Refuse new submissions when at cap-minus-one. Override via `--full-concurrency` flag when the user is intentionally batch-only.
 
-## 8. Pre-flight cost estimate
+## 8. Dry-run, show the estimate, get explicit confirmation — before every real submit
 
-Estimate GPU-seconds from step count × per-step seconds for the chosen model class. Refuse if over the user's budget (default 180 GPU-seconds per submission).
+This is the canonical **submission approval policy**. Every other file defers to it.
 
-**Why:** A Flux dev at 1024×1024 / 28 steps is ~30s; a Wan 2.2 i2v at 4 sec / 720p can be 5+ minutes. Without an estimate, the agent can casually queue work the user didn't intend to pay for.
+**Default (always on):**
 
-**How to apply:** Per-class baselines in [`cost-and-concurrency.md`](./cost-and-concurrency.md). Compute, compare to the user's budget (`$COMFY_BUDGET_SECONDS` if set), surface the breakdown, wait for `--budget-ok` if over. The proxy's `max_cost_usd` gate enforces a USD ceiling on every `submit_workflow` call as a second line of defence.
+1. Call `submit_workflow(..., dry_run: true)` with a `max_cost_usd` ceiling. This resolves placeholders and runs the proxy's cost gate without submitting.
+2. Show the user the estimate: Partner Node breakdown, GPU baseline, total, and — for GPU-heavy graphs — a cross-check against the per-class baselines in [`cost-and-concurrency.md`](./cost-and-concurrency.md).
+3. **Wait for explicit confirmation** ("yes", "go", "submit") for that submission, or for a batch whose total estimate was shown as one number. Silence, a new creative note, or an earlier approval of a *different* graph is not confirmation.
+4. Only then call `submit_workflow` for real, with the same `max_cost_usd`. The proxy enforces the ceiling again server-side.
+
+**Opt-in: auto-submit under an explicit budget.** Only if the user states it in the session — e.g. *"auto-submit anything under $0.50 per run for this session"* — may a real submit follow its dry run without a per-run confirmation, and only when **all** hold:
+
+- the dry-run estimate is ≤ the stated per-run budget (pass that budget as `max_cost_usd`);
+- the graph contains **no Partner Nodes** (Rule 6 always needs its own approval);
+- the submission is a variant of work the user already asked for, not a new direction.
+
+Still show each dry-run estimate as you go. The opt-in ends when the user revokes it or the session ends; never carry it over or infer it from past sessions. Environment variables (e.g. `COMFY_BUDGET_SECONDS`) are **not** an opt-in — a budget set in the environment only caps, it never approves.
+
+**Why:** A Flux dev at 1024×1024 / 28 steps is ~30s; a Wan 2.2 i2v at 4 sec / 720p can be 5+ minutes; a Partner Node call can cost 100× a base run. Credits are the user's money, so the agent never spends them on its own judgement unless the user has explicitly delegated that, within a stated limit.
 
 ## 9. Never forward `X-API-Key` to GCS signed URLs
 

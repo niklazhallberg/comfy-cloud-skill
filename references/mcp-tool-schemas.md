@@ -13,17 +13,17 @@ The [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) M
 | `submit_workflow` | `(workflow, max_cost_usd, inputs?, partnerNodeAuth=true, extraData?, dry_run?)` | `{ promptId, readBackStatus, cost }`, or `{ dryRun: true, cost, workflow }` |
 | `get_job_status` | `(promptId)` | Full job: status, outputs, `execution_meta`, `execution_error` |
 | `view_output` | `(filename, savePath, subfolder?, type="output", channel="rgba")` | `{ savedTo, sizeBytes, contentType, sha256 }` |
-| `write_manifest` | `(promptId, template, workflowApiPath, params, seed, partnerNodeCosts, …, savePath)` | `{ savedTo, totalAssetCostUsd, … }` — satisfies Rule 4 |
+| `write_manifest` | `(promptId, template, workflowApiPath, params, seed, savePath, partnerNodeCosts=[], gpuSecondsPerNode=[], tierCostPerGpuSecond=0, …optional)` | `{ savedTo, totalAssetCostUsd, … }` — satisfies Rule 4 |
 | `upload_workflow_to_userdata` | `(localPath, remotePath?, overwrite=true)` | `{ accessibleAt }` — Phase 6 step 1 |
 | `delete_workflow_from_userdata` | `(remotePath)` | `{ deletedPath, httpStatus }` |
-| `submit_simple_txt2img` / `export_simple_txt2img_workflow` | `(prompt, width?, height?, steps?, cfg?, seed?)` | Minimal SD1.5 smoke test |
+| `submit_simple_txt2img` / `export_simple_txt2img_workflow` | `(prompt, negativePrompt?, width=512, height=512, steps=20, cfg=7, seed?)` | Minimal SD1.5 smoke test. **`submit_simple_txt2img` has no cost gate and no `dry_run`** — preview with `export_…`, and it still needs explicit confirmation (Rule 8). Prefer `submit_workflow` |
 
 ### `submit_workflow` — the main entry point
 
 - **`workflow`** — API-format JSON (never canvas format; Rule 1). String values of the exact form `"{{NAME}}"` are placeholders.
 - **`inputs`** — `{ NAME: value }` for every placeholder. Any unresolved placeholder → refusal, nothing submitted.
 - **`max_cost_usd`** — required hard ceiling. The proxy estimates Partner Node cost (static upper-bound table) plus a GPU baseline and refuses over budget with a per-node breakdown. This is the proxy-side enforcement of Rules 6 and 8 — still surface the estimate to the user before calling.
-- **`dry_run`** — resolve placeholders + run the cost gate, return the final graph and estimate, submit nothing. Needs no API key. Use it to show the user the cost before asking for approval.
+- **`dry_run`** — resolve placeholders + run the cost gate, return the final graph and estimate, submit nothing. Needs no API key. Always call it before a real submit, show the result, and wait for the user's explicit confirmation ([Rule 8](./operational-rules.md)).
 - **`partnerNodeAuth`** — injects `extra_data.api_key_comfy_org` (default on). Never set hidden inputs yourself (Rule 5).
 
 ## Invocation pattern
@@ -32,7 +32,8 @@ The [`comfy-cloud-proxy`](https://github.com/niklazhallberg/comfy-cloud-proxy) M
 1. ping                                        // verify MCP is up
 2. get_object_info(nodeName)                   // Phase 1.5 — validate class_types + combo values
 3. upload_image / upload_mask                  // Phase 2.5, if the graph needs inputs
-4. submit_workflow(..., dry_run: true)         // Phase 2 — show cost, get approval
+4. submit_workflow(..., dry_run: true)         // Phase 2 — show the estimate
+   → STOP: wait for explicit user confirmation (Rule 8; opt-in auto-submit excepted)
 5. submit_workflow(...)                        // Phase 3 — returns promptId
 6. get_job_status(promptId)                    // poll until success / error
 7. view_output(filename, savePath)             // Phase 4

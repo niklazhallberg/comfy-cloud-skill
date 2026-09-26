@@ -8,6 +8,7 @@ Brings the skill in line with what the repo and the proxy actually ship.
 - `SKILL.md`, `references/pipeline-phases.md`, `references/pipeline-patterns.md` referenced a `templates/` directory and `scripts/validate_workflow.py` that were never shipped. The skill now builds from the patterns in `references/pipeline-patterns.md` and validates via `get_object_info` / `scripts/canvas_to_api.py --fetch-from-cloud`. Working workflows stay in the project that uses them.
 - `references/mcp-tool-schemas.md` listed most proxy tools as "planned". Rewritten for proxy v0.3.0: all 12 shipped tools, the `submit_workflow` placeholder + `max_cost_usd` contract, `dry_run`, and the end-to-end invocation order.
 - Cost guards (SKILL.md, Rule 8) now use the proxy's `max_cost_usd` gate and `dry_run` estimate instead of a local script.
+- **Submission approval policy made explicit and consistent** (Rule 8 is now the single source): every real `submit_workflow` is preceded by `dry_run`, the estimate is shown, and the user must confirm explicitly. Auto-submit is an **opt-in** the user states in-session with a per-run budget, never covers Partner Nodes, and ends with the session. Removed the conflicting implicit "auto-approve up to ~60 GPU-seconds" default from `cost-and-concurrency.md`; SKILL.md, README, pipeline-phases, partner-nodes and mcp-tool-schemas now defer to Rule 8.
 
 **Added**
 - `LICENSE` (MIT), `research/README.md`.

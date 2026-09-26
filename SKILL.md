@@ -52,7 +52,7 @@ Seven phases, sequential except Phase 2.5 (optional). Each has explicit definiti
 | 0 | Brief → graph spec (stack, conditioning shape, post-chain, output type) | ~2–10 min | Spec concrete enough to instantiate from a template |
 | 1 | Template selection + parameter mapping | ~2–5 min | API-format JSON built, all node IDs and links resolved |
 | 1.5 | Capability validation (every `class_type` and combo value exists in live `/api/object_info`) | ~30s | Validator passes with zero unresolved references |
-| 2 | Cost / concurrency / partner-node pre-flight | ~10s | Estimated credits surfaced; user opt-in if Partner Nodes present |
+| 2 | Cost / concurrency / partner-node pre-flight — `dry_run` + explicit confirmation | ~10s | Estimate shown; user explicitly confirmed this submission (Rule 8) |
 | 2.5 | Asset uploads (img2img / inpaint / ControlNet reference images) — optional | varies | All inputs uploaded to Cloud asset store, references injected into graph |
 | 3 | Submit + monitor (WebSocket progress, fallback to polling) | varies — model & params dependent | `execution_success` received OR `execution_error` surfaced with node-level detail |
 | 4 | Output retrieval + manifest write | ~5–30s | Files downloaded via `/api/view`, manifest saved alongside output |
@@ -69,9 +69,9 @@ Copy into the response when starting a build; check items off as you progress:
 ```markdown
 Comfy Cloud Pipeline Progress:
 - [ ] Phase 0: Brief → graph spec (stack, conditioning, post-chain, output)
-- [ ] Phase 1: Template selected + parameters mapped
+- [ ] Phase 1: Graph built from pattern + parameters mapped
 - [ ] Phase 1.5: Validated against live /api/object_info (every class_type + combo exists)
-- [ ] Phase 2: Cost / concurrency / partner-node pre-flight passed
+- [ ] Phase 2: dry_run estimate shown + user explicitly confirmed (or session auto-submit opt-in applies, no Partner Nodes)
 - [ ] Phase 2.5 (optional): Asset uploads complete
 - [ ] Phase 3: Submitted, monitored to completion
 - [ ] Phase 4: Output retrieved, manifest written
@@ -88,9 +88,9 @@ Thirteen locked policies. Full rationale + edge cases per rule: `references/oper
 3. **Always set seed explicitly.** Never leave `seed: -1` or rely on `randomize`. Inject a positive integer client-side and record it. Reproducibility starts with a known seed.
 4. **Write a manifest for every submission.** `{prompt_id, template, expanded_workflow, params, seed, object_info_hash, system_stats, timestamp}`. Without it, "rerun campaign X from October" is impossible.
 5. **Never include hidden inputs in your JSON.** `PROMPT`, `UNIQUE_ID`, `EXTRA_PNGINFO`, `API_KEY_COMFY_ORG` are injected by the server. Don't set them.
-6. **Partner Nodes require explicit opt-in.** Detect them by `class_type`. Surface estimated credit cost. Wait for user `--partner-ok` before submitting. They debit separately.
+6. **Partner Nodes require explicit opt-in.** Detect them by `class_type`. Surface estimated credit cost. Wait for user `--partner-ok` (or a plain-language yes) for that call or batch — even under an auto-submit opt-in. They debit separately.
 7. **Concurrency cap below tier limit.** Default to `tier_limit - 1` (Creator: 2, Pro: 4) so manual UI use isn't starved.
-8. **Pre-flight cost estimate.** Multiply step count × known per-step seconds for the chosen model class. Refuse submission if estimate > user-set credit budget. Surface the estimate, don't just block.
+8. **Dry-run, show the estimate, get explicit confirmation — before every real submit.** Always `submit_workflow(..., dry_run: true)` first, show the estimate, and wait for the user's explicit yes. Auto-submit is opt-in only: the user must state a per-run budget in the session, and it never covers Partner Nodes. Full policy: `references/operational-rules.md` § 8.
 9. **Never forward `X-API-Key` to GCS signed URLs.** After the 302 from `/api/view`, the redirect target is unauthenticated. Forwarding the key is a leak vector.
 10. **Treat HTTP 429 as "subscription inactive", NOT rate limit.** Surface the subscription error and stop. No backoff retry.
 11. **Filter WebSocket events by `prompt_id`.** The `clientId` query param is currently ignored server-side; you receive events for all of the user's concurrent jobs. Filter in code, every time.
@@ -157,8 +157,8 @@ Before every submit (Rule 8):
 
 1. Validate the graph against live `object_info` (Rule 2).
 2. Call `submit_workflow(..., dry_run: true)` with a `max_cost_usd` ceiling. The proxy returns the Partner Node + GPU-baseline estimate, or refuses with a per-node breakdown. For GPU-heavy graphs, cross-check with the per-class baselines in `references/cost-and-concurrency.md`.
-3. Surface the estimate. If a Partner Node is present or the estimate exceeds the user's budget, wait for explicit approval (`--partner-ok` / `--budget-ok`).
-4. Submit for real with the same `max_cost_usd` — the gate is enforced again server-side.
+3. Show the estimate and **wait for explicit confirmation** of this submission (or of a batch shown as one total). Exception: the user has opted into auto-submit under a stated per-run budget, the estimate is within it, and no Partner Node is present (Rule 8).
+4. Only then submit for real with the same `max_cost_usd` — the gate is enforced again server-side.
 5. Log cost actuals via `write_manifest` after `execution_success` for budget calibration.
 
 ## Lifecycle
@@ -173,7 +173,7 @@ The `comfy-cloud-proxy` MCP server wraps this lifecycle behind tools — see `re
 - Install custom node packs on Cloud — only `comfy.org/cloud/supported-nodes` list is available; request additions via the same page.
 - Promise that any specific model file exists on Cloud — always discover dynamically via `GET /api/experiment/models/{folder}` before referencing.
 - Bypass Comfy Cloud's TOS — no content-policy violations regardless of how the request is phrased.
-- Replace the user's creative direction. Surface options, recommend a default, wait for approval on anything that costs more than a trivial number of credits.
+- Replace the user's creative direction. Surface options, recommend a default, and never submit a paid run without the confirmation Rule 8 requires.
 
 ## Iteration discipline
 

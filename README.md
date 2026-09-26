@@ -13,7 +13,7 @@ A Claude Code skill that turns a **creative brief into a working ComfyUI pipelin
 Generative image and video work in ComfyUI is powerful but fragile. Node graphs break on a missing model. Partner Nodes (paid third-party models) spend money without warning. A result from last month is hard to reproduce. This skill encodes the discipline a careful pipeline operator would apply, so the agent applies it every time:
 
 - **No guessing:** every node and option is checked against Cloud's live catalog before submitting.
-- **No surprise bills:** a cost estimate is shown and approved before anything runs, and the proxy enforces a hard ceiling.
+- **No surprise bills:** before every paid run, the skill does a dry run, shows the estimate, and waits for your explicit yes. The proxy enforces a hard ceiling on top. Auto-submit under a budget is possible, but only when you switch it on (see below).
 - **No lost work:** every run writes a manifest (workflow, seed, parameters, cost), so it can be re-created.
 - **No black box:** the final hand-off is the live graph on your Comfy canvas, not an opaque file.
 
@@ -41,7 +41,7 @@ Each phase has an explicit definition of done ([`references/pipeline-phases.md`]
 
 > **You:** Make four variations of a ceramic mug on a concrete surface, soft morning light, Flux Dev, 1024×1024.
 >
-> **Claude:** *(Phase 0–1)* builds a Flux Dev txt2img graph with four locked seeds. *(1.5)* confirms the checkpoint, sampler and scheduler exist on Cloud. *(2)* runs a dry run and reports the estimated cost ("no Partner Nodes, GPU only — OK to submit?") *(3–4)* submits, waits, and saves four PNGs plus a manifest. *(6)* opens the graph in your Comfy Cloud tab so you can tweak it by hand.
+> **Claude:** *(Phase 0–1)* builds a Flux Dev txt2img graph with four locked seeds. *(1.5)* confirms the checkpoint, sampler and scheduler exist on Cloud. *(2)* runs a dry run, reports the estimated cost ("no Partner Nodes, GPU only — OK to submit?"), and **stops until you say yes** *(3–4)* submits, waits, and saves four PNGs plus a manifest. *(6)* opens the graph in your Comfy Cloud tab so you can tweak it by hand.
 
 ## Install
 
@@ -64,7 +64,7 @@ What does the comfy-cloud-pipeline-designer skill do?
 
 - **Two sources of truth, ranked.** Comfy Cloud's public OpenAPI spec wins over the upstream ComfyUI spec, which wins over community and AI research. Conflicts are logged explicitly in [`references/conflicts-and-limitations.md`](references/conflicts-and-limitations.md) instead of being silently resolved.
 - **Validate against the live instance, not memory.** Model files and node packs on Cloud change, so the skill checks `/api/object_info` before every submit rather than trusting training data.
-- **Cost is enforced twice.** The skill surfaces an estimate and asks, and the proxy independently refuses anything over `max_cost_usd`.
+- **Explicit approval by default; cost enforced twice.** Every real submit is preceded by a dry run and needs your explicit yes. The proxy independently refuses anything over `max_cost_usd`. *Opt-in:* say something like "auto-submit anything under $0.50 per run this session", and runs within that budget go through without asking. Partner Nodes (paid third-party models) still need approval every time. The opt-in ends with the session ([Rule 8](references/operational-rules.md)).
 - **Patterns, not templates.** The repo ships generalizable patterns. Concrete workflows belong to the project that uses them, so client work never leaks into a public skill.
 - **Research is append-only.** Raw research in [`research/`](research/) is never edited. It is synthesized into [`references/`](references/), so every claim can be traced to a source.
 - **The skill learns, with a human gate.** New gotchas found in real sessions are proposed, approved, written into `references/`, and logged in the CHANGELOG ([growth protocol](references/_growth-protocol-pointer.md)).
