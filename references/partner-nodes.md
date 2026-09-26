@@ -83,7 +83,7 @@ Per [Rule 6 in operational rules](./operational-rules.md):
 
 1. **Detect at validation time.** Maintain a `class_type → partner_node` map. On workflow validation, scan for any Partner Node `class_type`.
 2. **Surface estimated cost.** Partner Nodes often charge per output (image, second of video, etc.) at rates 10–100× GPU-second cost. Use the provider's published rate sheet to estimate, then surface to the user.
-3. **Require explicit opt-in.** Default to refusing submission. The user must pass `--partner-ok` (or equivalent skill signal) to proceed.
+3. **Require explicit opt-in.** Default to refusing submission. The user must pass `--partner-ok` (or an equivalent plain-language yes) for that call or batch. A session auto-submit budget (Rule 8) does **not** cover Partner Nodes.
 4. **Log Partner-Node usage in the manifest.** Mark the manifest with `partner_nodes_used: [<class_type>, ...]` so cost retrospectives can identify high-spend runs.
 
 ## Why this is high-risk

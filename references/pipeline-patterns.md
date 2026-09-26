@@ -134,4 +134,4 @@ LTXVPipelineLoader
 
 ---
 
-*This file is a working pattern catalog, not exhaustive. New patterns can be promoted from working `templates/*.json` files. See [CONTRIBUTING.md](../CONTRIBUTING.md).*
+*This file is a working pattern catalog, not exhaustive. New patterns can be promoted from working project workflows once they generalize. See [CONTRIBUTING.md](../CONTRIBUTING.md).*

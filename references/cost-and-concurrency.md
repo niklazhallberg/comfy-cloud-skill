@@ -75,25 +75,31 @@ total_seconds = sum(estimate_per_node(class_type, params) for node in workflow)
 estimated_cost = total_seconds * cost_per_second
 budget = env("COMFY_BUDGET_SECONDS", default=180)
 
-if total_seconds > budget:
-    surface_breakdown(workflow, total_seconds, budget)
-    require_user_confirmation()
+estimate = submit_workflow(workflow, max_cost_usd=ceiling, dry_run=True)   # proxy-side estimate
+surface_breakdown(estimate, total_seconds, budget)                           # always shown
 
 if any_partner_node(workflow):
-    estimated_partner_cost = sum(partner_cost(class_type) for node in workflow if is_partner(node))
-    surface_partner_cost(estimated_partner_cost)
-    require_explicit_opt_in()
+    require_explicit_approval()            # per call / batch, even under auto-submit
+elif session_auto_submit_budget and estimate.total <= session_auto_submit_budget:
+    pass                                   # user opted in this session (Rule 8)
+else:
+    require_explicit_approval()            # the default
+
+submit_workflow(workflow, max_cost_usd=ceiling)
 ```
 
 After execution, log actuals from `execution_meta` for budget calibration.
 
 ## When the user is OK with the cost
 
-- For a one-off "make this hero image": auto-approve up to ~60 GPU-seconds.
-- For a documented sweep ("generate 20 variants"): require an explicit budget approval covering the full sweep.
-- For Partner Nodes: always require explicit per-call or per-batch approval.
+The approval policy is defined once, in [Rule 8](./operational-rules.md#8-dry-run-show-the-estimate-get-explicit-confirmation--before-every-real-submit). In practice:
 
-The skill should make cost **visible**, not block work the user clearly wants.
+- **One-off run:** dry-run, show the estimate, wait for an explicit yes.
+- **Sweep** ("generate 20 variants"): dry-run one representative graph, show the total for the whole sweep, and take one explicit approval for the batch.
+- **Auto-submit:** only after the user states a per-run budget in the session; never for Partner Nodes.
+- **Partner Nodes:** always explicit per-call or per-batch approval.
+
+The skill should make cost **visible** and keep approval cheap (one clear question), not block work the user clearly wants.
 
 ## Cross-references
 

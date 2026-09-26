@@ -1,11 +1,11 @@
 # Contributing
 
-This skill is part of the Valtech RADON internal AI tooling, published openly. Contributions are welcome, especially in these areas:
+This skill was developed as part of Valtech RADON's AI tooling and is published openly. Contributions are welcome, especially in these areas:
 
 - New `references/*.md` entries synthesized from real ComfyUI / Comfy Cloud experience
-- Additional `templates/*.json` API-format workflows, validated against a live `/api/object_info`
+- New patterns in `references/pipeline-patterns.md`, generalized from workflows that ran successfully on Cloud
 - `scripts/` helpers for validation, sweeps, manifests, and asset management
-- Evals in `evals/` (we need at least three; current count: 0)
+- Evaluation scenarios (planned: an `evals/` directory with at least three end-to-end briefs)
 
 ## Skill conventions
 
@@ -18,14 +18,13 @@ Inherited from the [`valtech-radon-lens-studio-skill`](https://github.com/niklaz
 - Reference files are a **parts-bin**, not a menu. Compose across multiple files when a brief calls for it.
 - Third-person, gerund-or-noun-phrase voice in frontmatter ("Designs", "Validates", "Runs", not "I" or "You").
 
-## Workflow templates
+## Workflows
 
-Every `templates/*.json` must:
+Client- and project-specific workflows do **not** belong in this repo — they live with the project that uses them. When a pattern generalizes, promote it to `references/pipeline-patterns.md`. Any workflow used as an example must:
 
 1. Be in **API format** (flat dict, string node IDs, `class_type` + `inputs` per node).
 2. Validate against a recent `/api/object_info` snapshot.
-3. Include a header comment block explaining the intended use case and which parameters are designed to be swapped.
-4. Use placeholder values that are valid (not `null` or `__PLACEHOLDER__`) so the template is runnable as-is.
+3. Follow [`references/workflow-authoring-style.md`](references/workflow-authoring-style.md).
 
 ## Research preservation
 
